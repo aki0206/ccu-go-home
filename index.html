@@ -1,0 +1,1355 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>中正回家大作戰</title>
+<meta name="description" content="從中正大學回板橋：比較計程車、公車、台鐵、高鐵、客運的時間與價錢，提醒高鐵大學生優惠與早鳥什麼時候開賣。">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DotGothic16&family=Noto+Sans+TC:wght@400;500;700&family=Press+Start+2P&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --ink: #26324f;
+    --ink-soft: #5d6a8c;
+    --card: rgba(255, 255, 255, 0.9);
+    --paper: #ffffff;
+    --sun: #ffc93c;
+    --grass: #5cb85c;
+    --pink: #f58fb0;
+    --orange: #ff8a3d;
+    --blue: #3b82c4;
+    --red: #e5484d;
+    --cream: #fff8e1;
+    --shadow: 4px 4px 0 rgba(38, 50, 79, 0.3);
+    --pixel: "DotGothic16", "Noto Sans TC", system-ui, sans-serif;
+    --num: "Press Start 2P", "DotGothic16", monospace;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; }
+  body {
+    font-family: "Noto Sans TC", system-ui, sans-serif;
+    color: var(--ink);
+    background: #8fd3f7;
+    min-height: 100vh;
+    line-height: 1.6;
+  }
+  #bg {
+    position: fixed; inset: 0; width: 100%; height: 100%;
+    z-index: -1; image-rendering: pixelated; display: block;
+  }
+  .wrap { max-width: 1120px; margin: 0 auto; padding: 20px 16px 48px; }
+
+  /* ---------- header ---------- */
+  header { text-align: center; margin: 8px 0 18px; }
+  h1 {
+    font-family: var(--pixel); font-weight: 400;
+    font-size: clamp(30px, 7vw, 52px); margin: 0; color: #fff; letter-spacing: 2px;
+    text-shadow: 3px 0 0 var(--ink), -3px 0 0 var(--ink), 0 3px 0 var(--ink), 0 -3px 0 var(--ink),
+                 3px 3px 0 var(--ink), 6px 6px 0 rgba(38,50,79,.35);
+  }
+  .subtitle {
+    display: inline-block; margin-top: 10px; padding: 4px 14px;
+    font-family: var(--pixel); background: var(--sun); border: 3px solid var(--ink); box-shadow: var(--shadow);
+  }
+
+  /* ---------- cards ---------- */
+  .card {
+    background: var(--card); border: 3px solid var(--ink); box-shadow: var(--shadow);
+    padding: 18px; margin-bottom: 18px;
+    -webkit-backdrop-filter: blur(3px); backdrop-filter: blur(3px);
+  }
+  .card h2 {
+    font-family: var(--pixel); font-weight: 400; font-size: 22px; margin: 0 0 12px;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .card h2 .pip { width: 12px; height: 12px; background: var(--sun); border: 2px solid var(--ink); flex: none; }
+  .grid { display: grid; grid-template-columns: 340px minmax(0, 1fr); gap: 18px; align-items: start; }
+  @media (max-width: 860px) { .grid { grid-template-columns: minmax(0, 1fr); } }
+
+  /* ---------- route animation ---------- */
+  .stage { position: relative; }
+  #routeCanvas { width: 100%; height: 180px; display: block; image-rendering: pixelated; border: 3px solid var(--ink); background: #bde4f8; }
+  .landmarks { position: relative; height: 26px; margin-top: 6px; font-family: var(--pixel); font-size: 14px; }
+  .landmarks span { position: absolute; transform: translateX(-50%); white-space: nowrap; background: #fff; border: 2px solid var(--ink); padding: 0 6px; }
+  .bubble {
+    position: absolute; top: 10px; left: 50%; transform: translateX(-50%);
+    font-family: var(--pixel); background: #fff; border: 3px solid var(--ink); padding: 4px 12px;
+    box-shadow: 3px 3px 0 rgba(38,50,79,.3); white-space: nowrap; max-width: calc(100% - 20px); overflow: hidden; text-overflow: ellipsis;
+  }
+
+  /* ---------- form ---------- */
+  .field { margin-bottom: 14px; }
+  .field > label, .field > .label { display: block; font-weight: 700; margin-bottom: 4px; }
+  input[type=date], input[type=time], input[type=number], input[type=text], input[type=password], select {
+    width: 100%; font: inherit; color: var(--ink); background: #fff;
+    border: 2px solid var(--ink); padding: 6px 8px; border-radius: 0;
+  }
+  input:focus-visible, select:focus-visible, button:focus-visible, summary:focus-visible { outline: 3px solid var(--orange); outline-offset: 2px; }
+  .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .chips { display: flex; flex-wrap: wrap; gap: 8px; }
+  .chip { position: relative; }
+  .chip input { position: absolute; opacity: 0; pointer-events: none; }
+  .chip span {
+    display: inline-block; padding: 4px 10px; border: 2px solid var(--ink); background: #fff;
+    cursor: pointer; user-select: none; font-size: 15px;
+  }
+  .chip input:checked + span { background: var(--grass); color: #fff; box-shadow: 2px 2px 0 var(--ink); }
+  .chip input:focus-visible + span { outline: 3px solid var(--orange); outline-offset: 2px; }
+  .hint { font-size: 13px; color: var(--ink-soft); margin-top: 4px; }
+  .range-row { display: flex; align-items: center; gap: 10px; }
+  .range-row input { flex: 1; accent-color: var(--orange); }
+  .range-row output { font-family: var(--num); font-size: 11px; min-width: 52px; text-align: right; }
+
+  .px-btn {
+    font-family: var(--pixel); font-size: 15px; color: var(--ink); cursor: pointer;
+    background: var(--sun); border: 3px solid var(--ink); box-shadow: 3px 3px 0 var(--ink);
+    padding: 4px 12px; border-radius: 0;
+  }
+  .px-btn:hover { filter: brightness(1.05); }
+  .px-btn:active { transform: translate(2px, 2px); box-shadow: 1px 1px 0 var(--ink); }
+  .px-btn.ghost { background: #fff; }
+  .px-btn.sm { font-size: 13px; padding: 2px 10px; }
+
+  /* ---------- results ---------- */
+  .toolbar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 12px; }
+  .seg { display: inline-flex; border: 2px solid var(--ink); }
+  .seg button { font: inherit; font-size: 14px; border: 0; background: #fff; padding: 3px 10px; cursor: pointer; color: var(--ink); }
+  .seg button + button { border-left: 2px solid var(--ink); }
+  .seg button[aria-pressed=true] { background: var(--ink); color: #fff; }
+  #dirSeg button { font-size: 16px; font-weight: 700; padding: 6px 8px; line-height: 1.3; }
+  .dir-sub { display: block; font-size: 13px; font-weight: 400; opacity: .8; }
+  .live-status { font-size: 13px; padding: 2px 8px; border: 2px dashed var(--ink-soft); color: var(--ink-soft); }
+  .live-status.ok { border-style: solid; border-color: var(--grass); color: #2f7d33; }
+  .live-status.err { border-color: var(--red); color: var(--red); }
+
+  .routes { display: grid; gap: 10px; }
+  .route {
+    display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 6px 14px; align-items: center;
+    background: #fff; border: 2px solid var(--ink); padding: 10px 12px; cursor: pointer;
+    transition: transform .08s;
+  }
+  .route:hover { transform: translate(-1px, -1px); box-shadow: 3px 3px 0 rgba(38,50,79,.25); }
+  .route.selected { background: var(--cream); border-width: 3px; box-shadow: 4px 4px 0 var(--sun); }
+  .route .legs { font-weight: 500; display: flex; flex-wrap: wrap; align-items: center; gap: 2px 6px; }
+  .route .legs i { font-style: normal; color: var(--ink-soft); }
+  .route .meta { font-size: 14px; color: var(--ink-soft); grid-column: 1; }
+  .route .live { font-size: 13px; grid-column: 1; color: #2f7d33; }
+  .route .live.none { color: var(--red); }
+  .route .right { grid-row: 1 / span 3; grid-column: 2; text-align: right; display: grid; gap: 6px; justify-items: end; }
+  .price { font-family: var(--num); font-size: 16px; }
+  .tags { display: flex; flex-wrap: wrap; gap: 6px; grid-column: 1; }
+  .tag { font-size: 12px; font-weight: 700; padding: 0 6px; border: 2px solid var(--ink); }
+  .tag.cheap { background: #c8f0c0; }
+  .tag.fast { background: #ffe08a; }
+  .tag.cp { background: #ffc9dc; }
+  .tag.warn { background: #ffd6d6; }
+  @media (max-width: 520px) {
+    .route { grid-template-columns: minmax(0, 1fr); }
+    .route .right { grid-row: auto; grid-column: 1; display: flex; justify-content: space-between; align-items: center; text-align: left; }
+  }
+  .more { margin-top: 10px; text-align: center; }
+  .empty { padding: 16px; text-align: center; color: var(--ink-soft); border: 2px dashed var(--ink-soft); }
+
+  /* ---------- calendar ---------- */
+  .cal-wrap { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px; }
+  .cal h3 { font-family: var(--pixel); font-weight: 400; margin: 0 0 6px; font-size: 18px; text-align: center; }
+  .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 3px; }
+  .cal-grid .dow { text-align: center; font-size: 12px; color: var(--ink-soft); }
+  .day {
+    aspect-ratio: 1; display: flex; flex-direction: column; align-items: center; justify-content: center;
+    background: #fff; border: 2px solid #d5dbe8; font-size: 13px; line-height: 1.1; position: relative;
+  }
+  .day.out { visibility: hidden; }
+  .day.past { color: #b3bbcc; }
+  .day.today { border-color: var(--ink); border-style: dashed; }
+  .day .mk { font-size: 10px; font-weight: 700; }
+  .day.m-hsr { background: #ffd8bd; border-color: var(--orange); }
+  .day.m-tra { background: #cfe3ff; border-color: var(--blue); }
+  .day.m-early { background: #ffd3e2; border-color: var(--pink); }
+  .day.m-dep { background: var(--grass); border-color: var(--ink); color: #fff; }
+  .legend { display: flex; flex-wrap: wrap; gap: 6px 14px; font-size: 13px; margin: 12px 0; }
+  .legend b { display: inline-block; width: 12px; height: 12px; border: 2px solid var(--ink); vertical-align: -1px; margin-right: 4px; }
+  .countdown { display: grid; gap: 8px; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); }
+  .cd { border: 2px solid var(--ink); background: #fff; padding: 8px 10px; }
+  .cd .when { font-family: var(--pixel); font-size: 17px; }
+  .cd.now { background: #fff4c2; box-shadow: 3px 3px 0 var(--sun); }
+  .tips { margin: 14px 0 0; padding-left: 20px; }
+  .tips li { margin-bottom: 4px; }
+
+  /* ---------- settings ---------- */
+  details.card > summary { font-family: var(--pixel); font-size: 22px; cursor: pointer; list-style: none; display: flex; align-items: center; gap: 8px; }
+  details.card > summary::-webkit-details-marker { display: none; }
+  details.card > summary::after { content: "▼"; font-size: 14px; margin-left: auto; }
+  details.card[open] > summary::after { content: "▲"; }
+  .set-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px; margin-top: 14px; }
+  .set-group { border: 2px solid var(--ink); background: #fff; padding: 10px 12px; }
+  .set-group h3 { font-family: var(--pixel); font-weight: 400; font-size: 17px; margin: 0 0 8px; }
+  .set-row { display: grid; grid-template-columns: minmax(0, 1fr) 76px 76px; gap: 6px; align-items: center; font-size: 14px; margin-bottom: 6px; }
+  .set-row.head { font-size: 12px; color: var(--ink-soft); }
+  .set-row input { padding: 3px 5px; }
+  .set-row.one { grid-template-columns: minmax(0, 1fr) 76px; }
+  .tdx-box { margin-top: 16px; border: 2px dashed var(--ink); padding: 12px; background: #fff; }
+  .tdx-box .row2 { margin: 8px 0; }
+
+  footer { text-align: center; font-size: 13px; color: var(--ink); }
+  footer .card { font-size: 13px; text-align: left; }
+  a { color: var(--blue); }
+  .visually-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+  @media (prefers-reduced-motion: reduce) { .route { transition: none; } }
+</style>
+</head>
+<body>
+<canvas id="bg" aria-hidden="true"></canvas>
+
+<div class="wrap">
+  <header>
+    <h1>中正回家大作戰</h1>
+    <div class="subtitle" id="subtitle">CCU ➜ 板橋 · 最划算的回家路線</div>
+  </header>
+
+  <!-- 像素小人路線動畫 -->
+  <section class="card stage" aria-label="回家路線動畫">
+    <canvas id="routeCanvas" aria-hidden="true"></canvas>
+    <div class="bubble" id="bubble" role="status">點選下方方案，看小人怎麼回家 ↓</div>
+    <div class="landmarks">
+      <span id="lmA" style="left:8%">🏫 中正大學</span>
+      <span id="lmB" style="left:45%">🚉 車站</span>
+      <span id="lmC" style="left:91%">🏠 板橋</span>
+    </div>
+  </section>
+
+  <div class="grid">
+    <!-- 出發設定 -->
+    <section class="card" aria-labelledby="formTitle">
+      <h2 id="formTitle"><span class="pip"></span>出發設定</h2>
+
+      <div class="field">
+        <div class="seg" role="group" aria-label="行程方向" id="dirSeg" style="width:100%">
+          <button type="button" data-dir="home" aria-pressed="true" style="flex:1">🏠 回家<span class="dir-sub">中正 → 板橋</span></button>
+          <button type="button" data-dir="school" aria-pressed="false" style="flex:1">🏫 返校<span class="dir-sub">板橋 → 中正</span></button>
+        </div>
+      </div>
+
+      <div class="row2">
+        <div class="field">
+          <label for="depDate">出發日期</label>
+          <input type="date" id="depDate">
+        </div>
+        <div class="field">
+          <label for="depTime" id="depTimeLabel">從中正出發</label>
+          <input type="time" id="depTime" step="300">
+        </div>
+      </div>
+
+      <div class="field">
+        <div class="label" id="modeLabel">中正 ↔ 車站怎麼移動</div>
+        <div class="chips" id="modeChips">
+          <label class="chip"><input type="checkbox" value="taxi" checked><span>🚕 計程車（自己一台）</span></label>
+          <label class="chip"><input type="checkbox" value="share" checked><span>👥 共乘計程車</span></label>
+          <label class="chip"><input type="checkbox" value="bus" checked><span>🚌 公車</span></label>
+        </div>
+      </div>
+
+      <div class="field" id="shareField">
+        <label for="shareN">共乘總人數（含自己）</label>
+        <select id="shareN">
+          <option value="2">2 人分攤</option>
+          <option value="3">3 人分攤</option>
+          <option value="4" selected>4 人分攤（坐滿）</option>
+        </select>
+        <div class="hint" id="shareHint"></div>
+      </div>
+
+      <div class="field">
+        <div class="label">長途交通</div>
+        <div class="chips" id="kindChips">
+          <label class="chip"><input type="checkbox" value="hsr" checked><span>🚄 高鐵</span></label>
+          <label class="chip"><input type="checkbox" value="tra" checked><span>🚆 台鐵</span></label>
+          <label class="chip"><input type="checkbox" value="coach" checked><span>🚍 客運</span></label>
+        </div>
+      </div>
+
+      <div class="field">
+        <div class="label">台鐵車種</div>
+        <div class="chips" id="traChips">
+          <label class="chip"><input type="checkbox" value="puyuma" checked><span>普悠瑪</span></label>
+          <label class="chip"><input type="checkbox" value="emu3000" checked><span>自強 3000</span></label>
+          <label class="chip"><input type="checkbox" value="ziqiang" checked><span>自強（一般）</span></label>
+          <label class="chip"><input type="checkbox" value="local" checked><span>區間</span></label>
+        </div>
+      </div>
+
+      <div class="field">
+        <div class="chips">
+          <label class="chip"><input type="checkbox" id="isStudent" checked><span>🎓 我有學生證（高鐵、台鐵大學生優惠）</span></label>
+        </div>
+      </div>
+
+      <div class="field">
+        <label for="hsrFare">高鐵票價假設</label>
+        <select id="hsrFare"></select>
+        <div class="hint" id="hsrFareHint"></div>
+      </div>
+
+      <div class="field">
+        <label for="traFare">台鐵票價假設（普悠瑪、自強）</label>
+        <select id="traFare"></select>
+        <div class="hint">台鐵大學生優惠：50 公里以上對號車，依班次固定為 5 折或 7 折，名額有限；區間車不適用。</div>
+      </div>
+
+      <div class="field">
+        <label for="timeValue">我的 1 小時值多少錢？（算 CP 值用）</label>
+        <div class="range-row">
+          <input type="range" id="timeValue" min="0" max="500" step="10">
+          <output id="timeValueOut" for="timeValue"></output>
+        </div>
+        <div class="hint">數字越大，越偏好「快」；設 0 就是只看價錢。</div>
+      </div>
+
+      <button type="button" class="px-btn" id="queryBtn" style="width:100%;font-size:18px;padding:8px">🔍 查詢即時班次</button>
+      <div class="hint" id="queryHint">設定好日期、方向後按查詢，會用 TDX 抓當天實際的高鐵、台鐵班次。</div>
+    </section>
+
+    <!-- 方案比較 -->
+    <section class="card" aria-labelledby="resTitle">
+      <h2 id="resTitle"><span class="pip"></span>方案比較</h2>
+      <div class="toolbar">
+        <div class="seg" role="group" aria-label="排序方式" id="sortSeg">
+          <button type="button" data-sort="cp" aria-pressed="true">💎 CP 值</button>
+          <button type="button" data-sort="cost" aria-pressed="false">💰 價錢</button>
+          <button type="button" data-sort="time" aria-pressed="false">⏱ 時間</button>
+        </div>
+        <span class="live-status" id="liveStatus">即時班表：未設定（使用預估時間）</span>
+      </div>
+      <div class="routes" id="routes"></div>
+      <div class="more"><button type="button" class="px-btn ghost sm" id="moreBtn" hidden>顯示全部方案</button></div>
+    </section>
+  </div>
+
+  <!-- 訂票提醒日曆 -->
+  <section class="card" aria-labelledby="calTitle">
+    <h2 id="calTitle"><span class="pip"></span>訂票提醒日曆</h2>
+    <div class="countdown" id="countdown"></div>
+    <div class="legend">
+      <span><b style="background:#ffd8bd"></b>高鐵開賣</span>
+      <span><b style="background:#cfe3ff"></b>台鐵開賣</span>
+      <span><b style="background:#ffd3e2"></b>早鳥停售（預估）</span>
+      <span><b style="background:var(--grass)"></b>出發日</span>
+      <span><b style="background:#fff;border-style:dashed"></b>今天</span>
+    </div>
+    <div class="cal-wrap" id="calendar"></div>
+    <ul class="tips" id="tips"></ul>
+  </section>
+
+  <!-- 設定 -->
+  <details class="card" id="settings">
+    <summary><span class="pip" style="width:12px;height:12px;background:var(--sun);border:2px solid var(--ink)"></span>設定：票價、時間與即時班表</summary>
+    <p class="hint">網頁內建的是預估值，票價調整或你知道更準的數字時可以直接修改，會自動存在這台裝置的瀏覽器裡。</p>
+    <div class="set-grid" id="setGrid"></div>
+
+    <div class="tdx-box">
+      <h3 style="font-family:var(--pixel);font-weight:400;margin:0 0 6px">🛰 即時班表（交通部 TDX，選用）</h3>
+      <div class="hint">
+        到 <a href="https://tdx.transportdata.tw/" target="_blank" rel="noopener">TDX 運輸資料流通服務</a> 註冊並申請 API 金鑰，把 Client Id 與 Client Secret 貼在這裡。
+        金鑰<strong>只會存在你自己的瀏覽器</strong>，不會寫進網頁檔案、也不會上傳到 GitHub。請不要在公用電腦上儲存。
+      </div>
+      <div class="row2">
+        <div>
+          <label for="tdxId" class="hint">Client Id</label>
+          <input type="text" id="tdxId" autocomplete="off" spellcheck="false">
+        </div>
+        <div>
+          <label for="tdxSecret" class="hint">Client Secret</label>
+          <input type="password" id="tdxSecret" autocomplete="off">
+        </div>
+      </div>
+      <button type="button" class="px-btn sm" id="tdxSave">儲存並測試</button>
+      <button type="button" class="px-btn ghost sm" id="tdxClear">清除金鑰</button>
+      <div class="hint" id="tdxMsg" role="status"></div>
+    </div>
+
+    <p style="margin-top:14px"><button type="button" class="px-btn ghost sm" id="resetBtn">恢復預設票價</button></p>
+  </details>
+
+  <footer>
+    <div class="card">
+      ⚠️ 票價與時間為預估值，實際以官方公告為準：
+      <a href="https://www.thsrc.com.tw/" target="_blank" rel="noopener">台灣高鐵</a> ·
+      <a href="https://www.railway.gov.tw/" target="_blank" rel="noopener">臺鐵</a> ·
+      <a href="https://www.ubus.com.tw/" target="_blank" rel="noopener">統聯客運</a>。
+      高鐵、台鐵大學生優惠需攜帶學生證正本；高鐵早鳥為實名制，需攜帶身分證件。
+    </div>
+    <p><span class="subtitle" style="font-size:13px;margin:0">Made with Vibe Coding · 中正回家大作戰</span></p>
+  </footer>
+</div>
+
+<script>
+(() => {
+  "use strict";
+
+  /* ================= 工具 ================= */
+  const $ = (s, el = document) => el.querySelector(s);
+  const $$ = (s, el = document) => [...el.querySelectorAll(s)];
+  const store = {
+    get(k, d) { try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : d; } catch (e) { return d; } },
+    set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} },
+    del(k) { try { localStorage.removeItem(k); } catch (e) {} },
+  };
+  const DAY = 86400000;
+  const pad = n => String(n).padStart(2, "0");
+  const toISO = d => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+  const fromISO = s => { const [y, m, d] = s.split("-").map(Number); return new Date(y, m - 1, d); };
+  const addDays = (d, n) => new Date(d.getFullYear(), d.getMonth(), d.getDate() + n);
+  const diffDays = (a, b) => Math.round((a - b) / DAY);
+  const today = () => { const n = new Date(); return new Date(n.getFullYear(), n.getMonth(), n.getDate()); };
+  const WEEK = ["日", "一", "二", "三", "四", "五", "六"];
+  const fmtMD = d => `${d.getMonth() + 1}/${d.getDate()}（${WEEK[d.getDay()]}）`;
+  const fmtDur = m => { m = Math.round(m); const h = Math.floor(m / 60), r = m % 60; return h ? `${h} 小時${r ? ` ${r} 分` : ""}` : `${r} 分`; };
+  const hm2min = s => { const [h, m] = s.split(":").map(Number); return h * 60 + m; };
+  const fmtClock = m => { m = Math.round(m); const next = m >= 1440; m %= 1440; return `${next ? "隔天 " : ""}${pad(Math.floor(m / 60))}:${pad(m % 60)}`; };
+  const money = n => "$" + Math.round(n).toLocaleString("en-US");
+  const esc = s => String(s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+
+  /* ================= 預設資料（預估值，可在設定修改） ================= */
+  const DEFAULTS = {
+    leg1: {
+      minxiong: { taxi: { cost: 150, min: 12 }, bus: { cost: 20, min: 40 } },
+      dalin:    { taxi: { cost: 200, min: 18 }, bus: null },
+      chiayi:   { taxi: { cost: 350, min: 30 }, bus: { cost: 50, min: 60 } },
+      yunlin:   { taxi: { cost: 600, min: 35 }, bus: null },
+    },
+    tra: {
+      // 估計值（2025/6 台鐵漲價前），可在設定面板改成實際票價
+      minxiong: { puyuma: { cost: 562, min: 170 }, emu3000: { cost: 562, min: 180 }, ziqiang: { cost: 562, min: 185 }, local: { cost: 362, min: 300 } },
+      dalin:    { puyuma: { cost: 548, min: 165 }, emu3000: { cost: 548, min: 175 }, ziqiang: { cost: 548, min: 180 }, local: { cost: 352, min: 290 } },
+    },
+    hsr: { chiayi: { cost: 1040, min: 85 }, yunlin: { cost: 900, min: 80 } },
+    coach: { walk: 10, cost: 330, min: 210, mrtCost: 25, mrtMin: 20 },
+    buffer: { hsr: 10, tra: 5, home: 10 },
+    rules: { hsrOpen: 28, traOpen: 28, earlyCut: 5 },
+  };
+
+  const STATIONS = {
+    minxiong: { name: "民雄站", kind: "tra", tdx: "民雄" },
+    dalin:    { name: "大林站", kind: "tra", tdx: "大林" },
+    chiayi:   { name: "高鐵嘉義站", kind: "hsr", tdx: "嘉義" },
+    yunlin:   { name: "高鐵雲林站", kind: "hsr", tdx: "雲林" },
+    campus:   { name: "校內統聯站", kind: "coach" },
+  };
+  const MODE = {
+    taxi:   { icon: "🚕", name: "白牌計程車" },
+    share:  { icon: "👥", name: "共乘計程車" },
+    bus:    { icon: "🚌", name: "公車" },
+    walk:   { icon: "🚶", name: "走路" },
+    tra:    { icon: "🚆", name: "台鐵" },
+    hsr:    { icon: "🚄", name: "高鐵" },
+    coach:  { icon: "🚍", name: "統聯客運 7005" },
+    mrt:    { icon: "🚇", name: "捷運板南線" },
+  };
+  const TRA_FARES = [
+    { id: "auto", name: "自動推估" },
+    { id: "s50", name: "大學生 5 折", rate: 0.5, type: "student" },
+    { id: "s70", name: "大學生 7 折", rate: 0.7, type: "student" },
+    { id: "full", name: "原價（全票）", rate: 1 },
+  ];
+  const DIR = {
+    home:   { from: "中正", to: "板橋", sub: "CCU ➜ 板橋 · 最划算的回家路線", timeLabel: "從中正出發", dest: "到板橋" },
+    school: { from: "板橋", to: "中正", sub: "板橋 ➜ CCU · 最划算的返校路線", timeLabel: "從家裡出發", dest: "到中正" },
+  };
+  // match 用 TDX 班表的車種名稱判斷，例如「自強(普悠瑪)」「自強(3000)」
+  const TRA_TYPES = {
+    puyuma:  { name: "普悠瑪", match: s => /普悠瑪/.test(s) },
+    emu3000: { name: "自強 3000", match: s => /3000/.test(s) },
+    ziqiang: { name: "自強號", match: s => /自強|太魯閣/.test(s) && !/普悠瑪|3000/.test(s) },
+    local:   { name: "區間車", match: s => /區間/.test(s) },
+  };
+  const HSR_FARES = [
+    { id: "auto", name: "自動推估" },
+    { id: "s50", name: "大學生 5 折", rate: 0.5, type: "student" },
+    { id: "s75", name: "大學生 75 折", rate: 0.75, type: "student" },
+    { id: "s88", name: "大學生 88 折", rate: 0.88, type: "student" },
+    { id: "e65", name: "早鳥 65 折", rate: 0.65, type: "early" },
+    { id: "e80", name: "早鳥 8 折", rate: 0.8, type: "early" },
+    { id: "e90", name: "早鳥 9 折", rate: 0.9, type: "early" },
+    { id: "full", name: "原價（全票）", rate: 1 },
+  ];
+
+  function deepMerge(base, over) {
+    if (!over || typeof over !== "object") return structuredClone(base);
+    const out = structuredClone(base);
+    for (const k of Object.keys(base)) {
+      if (!(k in over)) continue;
+      if (base[k] && typeof base[k] === "object") out[k] = deepMerge(base[k], over[k]);
+      else if (base[k] !== null && typeof over[k] === typeof base[k]) out[k] = over[k];
+    }
+    return out;
+  }
+  let S = deepMerge(DEFAULTS, store.get("ccu.settings", {}));
+  const saveSettings = () => store.set("ccu.settings", S);
+
+  /* ================= 表單 ================= */
+  const el = {
+    date: $("#depDate"), time: $("#depTime"), student: $("#isStudent"), fare: $("#hsrFare"),
+    fareHint: $("#hsrFareHint"), tv: $("#timeValue"), tvOut: $("#timeValueOut"),
+    traFare: $("#traFare"), shareN: $("#shareN"),
+  };
+  const state = { sort: "cp", dir: "home", showAll: false, selected: null, live: null, liveKey: null };
+
+  function nextFriday() { const t = today(); const add = (5 - t.getDay() + 7) % 7 || 7; return addDays(t, add); }
+
+  function initForm() {
+    const saved = store.get("ccu.form", {});
+    el.date.value = saved.date && fromISO(saved.date) >= today() ? saved.date : toISO(nextFriday());
+    el.date.min = toISO(today());
+    el.time.value = saved.time || "17:00";
+    el.tv.value = saved.tv ?? 150;
+    if (typeof saved.student === "boolean") el.student.checked = saved.student;
+    if (saved.modes) $$("#modeChips input").forEach(i => i.checked = saved.modes.includes(i.value));
+    if (saved.kinds) $$("#kindChips input").forEach(i => i.checked = saved.kinds.includes(i.value));
+    if (saved.traTypes) $$("#traChips input").forEach(i => i.checked = saved.traTypes.includes(i.value));
+    if (saved.sort) state.sort = saved.sort;
+    if (DIR[saved.dir]) state.dir = saved.dir;
+    if (["2", "3", "4"].includes(saved.shareN)) el.shareN.value = saved.shareN;
+    renderFareOptions(saved.fare || "auto", saved.traFare || "auto");
+  }
+
+  function readForm() {
+    const date = el.date.value ? fromISO(el.date.value) : nextFriday();
+    return {
+      date, iso: toISO(date), daysLeft: diffDays(date, today()),
+      time: el.time.value || "17:00",
+      modes: new Set($$("#modeChips input:checked").map(i => i.value)),
+      kinds: new Set($$("#kindChips input:checked").map(i => i.value)),
+      traTypes: new Set($$("#traChips input:checked").map(i => i.value)),
+      student: el.student.checked, fare: el.fare.value || "auto", tv: Number(el.tv.value),
+      traFare: el.traFare.value || "auto", shareN: Number(el.shareN.value) || 4, dir: state.dir,
+    };
+  }
+
+  function saveForm(f) {
+    store.set("ccu.form", { date: f.iso, time: f.time, tv: f.tv, student: f.student, fare: f.fare, traFare: f.traFare,
+      shareN: String(f.shareN), dir: f.dir, modes: [...f.modes], kinds: [...f.kinds], traTypes: [...f.traTypes], sort: state.sort });
+  }
+
+  function fillSelect(sel, list, keep, isOff) {
+    sel.innerHTML = list.map(o => {
+      const off = isOff(o);
+      return `<option value="${o.id}" ${off ? "disabled" : ""}>${o.name}${off ? "（不適用）" : ""}</option>`;
+    }).join("");
+    const opt = sel.querySelector(`option[value="${keep}"]`);
+    sel.value = opt && !opt.disabled ? keep : "auto";
+  }
+  function renderFareOptions(keepHsr, keepTra) {
+    const f = readFormLite();
+    fillSelect(el.fare, HSR_FARES, keepHsr, o => (o.type === "student" && !f.student) || (o.type === "early" && f.daysLeft < S.rules.earlyCut));
+    fillSelect(el.traFare, TRA_FARES, keepTra, o => o.type === "student" && !f.student);
+  }
+  const resolveTraFare = f => TRA_FARES.find(o => o.id === (f.traFare !== "auto" ? f.traFare : f.student ? "s70" : "full"));
+  function readFormLite() {
+    const date = el.date.value ? fromISO(el.date.value) : nextFriday();
+    return { student: el.student.checked, daysLeft: diffDays(date, today()) };
+  }
+
+  /* 依剩餘天數推估最可能拿到的高鐵票種 */
+  function resolveHsrFare(f) {
+    if (f.fare !== "auto") return HSR_FARES.find(o => o.id === f.fare);
+    if (f.student) return HSR_FARES.find(o => o.id === "s75");
+    if (f.daysLeft >= S.rules.earlyCut) return HSR_FARES.find(o => o.id === "e80");
+    return HSR_FARES.find(o => o.id === "full");
+  }
+
+  function fareHint(f, fare) {
+    const open = hsrOpenDate(f.date), d = f.daysLeft;
+    const parts = [];
+    if (d < 0) parts.push("⚠️ 這個日期已經過了");
+    else if (diffDays(open, today()) > 0) parts.push(`高鐵 ${fmtMD(open)} 才開賣（還有 ${diffDays(open, today())} 天）`);
+    else {
+      parts.push(d >= S.rules.earlyCut ? "早鳥、大學生優惠都在販售期（名額有限）" : "已過早鳥販售期，大學生優惠仍可購買");
+    }
+    if (f.fare === "auto") parts.push(`目前以「${fare.name}」計算${f.student ? "（大學生 75 折車次最多）" : ""}`);
+    return parts.join("；");
+  }
+
+  /* ================= 訂票日期規則 ================= */
+  // 高鐵：可訂乘車日（含）前 29 天內的車票；週五、六可預訂到 4 週後的週日
+  function hsrOpenDate(dep) {
+    for (let k = S.rules.hsrOpen + 3; k >= 0; k--) {
+      const d = addDays(dep, -k);
+      const extra = d.getDay() === 5 ? 2 : d.getDay() === 6 ? 1 : 0;
+      if (k <= S.rules.hsrOpen + extra) return d;
+    }
+    return dep;
+  }
+  const traOpenDate = dep => addDays(dep, -S.rules.traOpen);
+  const earlyCutDate = dep => addDays(dep, -S.rules.earlyCut);
+
+  /* ================= 方案組合 ================= */
+  // legs 一律以「中正 → 板橋」的順序建立；返校時再反轉成 seq
+  function buildRoutes(f) {
+    const routes = [];
+    const hsrFare = resolveHsrFare(f), traFare = resolveTraFare(f);
+    const toSchool = f.dir === "school";
+    const local = (sid, m) => {
+      const base = S.leg1[sid][m === "share" ? "taxi" : m];
+      if (m === "share") return { mode: m, name: `共乘計程車（${f.shareN} 人分攤）`, cost: Math.ceil(base.cost / f.shareN), min: base.min, total: base.cost };
+      return { mode: m, name: MODE[m].name, cost: base.cost, min: base.min };
+    };
+    const hasLocal = (sid, m) => f.modes.has(m) && S.leg1[sid][m === "share" ? "taxi" : m];
+
+    if (f.kinds.has("tra")) {
+      for (const sid of ["minxiong", "dalin"]) for (const m of ["taxi", "share", "bus"]) {
+        if (!hasLocal(sid, m)) continue;
+        for (const t of Object.keys(TRA_TYPES)) {
+          if (!f.traTypes.has(t)) continue;
+          const fare = t === "local" ? TRA_FARES[3] : traFare, full = S.tra[sid][t].cost;
+          const label = TRA_TYPES[t].name + (fare.type === "student" ? `（${fare.name.replace("大學生 ", "學生")}）` : "");
+          routes.push({
+            id: `${sid}-${m}-${t}`, station: sid, kind: "tra", sub: t, buffer: S.buffer.tra,
+            legs: [local(sid, m), { mode: "tra", name: label, cost: Math.round(full * fare.rate), min: S.tra[sid][t].min }],
+          });
+        }
+      }
+    }
+    if (f.kinds.has("hsr")) {
+      for (const sid of ["chiayi", "yunlin"]) for (const m of ["taxi", "share", "bus"]) {
+        if (!hasLocal(sid, m)) continue;
+        const full = S.hsr[sid].cost;
+        routes.push({
+          id: `${sid}-${m}-hsr`, station: sid, kind: "hsr", buffer: S.buffer.hsr,
+          legs: [local(sid, m), { mode: "hsr", name: `高鐵（${hsrFare.name.replace("（全票）", "")}）`, cost: Math.round(full * hsrFare.rate / 5) * 5, min: S.hsr[sid].min }],
+        });
+      }
+    }
+    if (f.kinds.has("coach")) {
+      routes.push({
+        id: "campus-coach", station: "campus", kind: "coach", buffer: 0,
+        legs: [
+          { mode: "walk", name: toSchool ? "走回宿舍" : "走到校內站牌", cost: 0, min: S.coach.walk },
+          { mode: "coach", name: toSchool ? "統聯（西螺轉 7005）→ 中正" : "統聯 7005 → 台北轉運站", cost: S.coach.cost, min: S.coach.min },
+          { mode: "mrt", name: toSchool ? "捷運 → 台北轉運站" : "捷運 → 板橋", cost: S.coach.mrtCost, min: S.coach.mrtMin },
+        ],
+      });
+    }
+
+    const depMin = hm2min(f.time);
+    for (const r of routes) {
+      r.seq = toSchool ? [...r.legs].reverse() : r.legs;
+      // pre：搭上長途車之前的移動；post：下車之後的移動（含 板橋站 ↔ 家）
+      const mainIdx = r.seq.findIndex(l => ["tra", "hsr", "coach"].includes(l.mode));
+      const sum = ls => ls.reduce((a, l) => a + l.min, 0);
+      r.pre = sum(r.seq.slice(0, mainIdx)) + (toSchool ? S.buffer.home : 0);
+      r.post = sum(r.seq.slice(mainIdx + 1)) + (toSchool ? 0 : S.buffer.home);
+      r.cost = r.legs.reduce((a, l) => a + l.cost, 0);
+      r.min = r.pre + r.buffer + r.seq[mainIdx].min + r.post;
+      r.live = applyLive(r, depMin, f);
+      if (r.live && !r.live.none) r.min = r.live.arr + r.post - depMin;
+      r.arrive = depMin + r.min;
+      r.score = r.cost + (r.min / 60) * f.tv;
+    }
+    return routes;
+  }
+
+  /* ================= 方案比較渲染 ================= */
+  function renderRoutes(f, routes) {
+    const box = $("#routes"), more = $("#moreBtn");
+    if (!routes.length) {
+      box.innerHTML = `<div class="empty">沒有符合的方案，請至少勾選一種「怎麼去車站」和「長途交通」。</div>`;
+      more.hidden = true; return;
+    }
+    const minCost = Math.min(...routes.map(r => r.cost));
+    const minTime = Math.min(...routes.map(r => r.min));
+    const minScore = Math.min(...routes.map(r => r.score));
+    const key = { cp: r => r.score, cost: r => r.cost * 1e4 + r.min, time: r => r.min * 1e5 + r.cost }[state.sort];
+    routes.sort((a, b) => key(a) - key(b));
+    const limit = state.showAll ? routes.length : 8;
+
+    box.innerHTML = routes.slice(0, limit).map(r => {
+      const tags = [];
+      if (r.cost === minCost) tags.push(`<span class="tag cheap">🏆 最便宜</span>`);
+      if (r.min === minTime) tags.push(`<span class="tag fast">⚡ 最快</span>`);
+      if (r.score === minScore) tags.push(`<span class="tag cp">💎 CP 值最高</span>`);
+      if (r.kind === "hsr" && f.daysLeft >= 0 && diffDays(hsrOpenDate(f.date), today()) > 0) tags.push(`<span class="tag warn">⏳ 尚未開賣</span>`);
+      const st = STATIONS[r.station], D = DIR[f.dir];
+      const legSpan = l => `<span>${MODE[l.mode].icon} ${esc(l.name)}</span>`;
+      const stop = r.kind === "coach" ? "" : `<i>→</i><span>📍${st.name}</span>`;
+      const legs = (f.dir === "home"
+        ? [legSpan(r.seq[0]), stop, ...r.seq.slice(1).map(l => `<i>→</i>${legSpan(l)}`), `<i>→</i><span>🏠</span>`]
+        : [`<span>🏠</span>`, ...r.seq.slice(0, -1).map(l => `<i>→</i>${legSpan(l)}`), stop, `<i>→</i>${legSpan(r.seq[r.seq.length - 1])}`, `<i>→</i><span>🏫</span>`]
+      ).join("");
+      const shareNote = r.legs[0].mode === "share" ? `<div class="meta">👥 計程車全程 ${money(r.legs[0].total)}，每人 ${money(r.legs[0].cost)}</div>` : "";
+      let live = "";
+      if (r.live && r.live.none) live = `<div class="live none">🛰 這個時間之後當天沒有符合的班次</div>`;
+      else if (r.live) live = `<div class="live">${r.live.fixed ? "🗓 依時刻表：" : "🛰 "}搭 ${esc(r.live.type)} ${esc(r.live.no)}${r.kind === "coach" ? "" : " 次"} ${fmtClock(r.live.dep)} 開 → ${fmtClock(r.live.arr)} 到站（在車站等 ${r.live.wait} 分）</div>`;
+      return `<article class="route ${state.selected === r.id ? "selected" : ""}" data-id="${r.id}" tabindex="0" aria-label="${esc(st.name)} 方案，${money(r.cost)}，${fmtDur(r.min)}">
+        ${tags.length ? `<div class="tags">${tags.join("")}</div>` : ""}
+        <div class="legs">${legs}</div>
+        <div class="meta">⏱ ${fmtDur(r.min)} · 預計 ${fmtClock(r.arrive)} ${D.dest}${r.live ? "" : "（預估）"}</div>
+        ${shareNote}${live}
+        <div class="right"><span class="price">${money(r.cost)}</span><button type="button" class="px-btn sm" data-go="${r.id}">▶ 出發</button></div>
+      </article>`;
+    }).join("");
+    more.hidden = routes.length <= 8;
+    more.textContent = state.showAll ? "只顯示前 8 個" : `顯示全部 ${routes.length} 個方案`;
+    lastRoutes = routes;
+  }
+  let lastRoutes = [];
+
+  /* ================= 日曆 ================= */
+  function renderCalendar(f) {
+    const dep = f.date, t = today();
+    const hsr = hsrOpenDate(dep), tra = traOpenDate(dep), early = earlyCutDate(dep);
+    const marks = new Map();
+    const mark = (d, cls, label) => {
+      const k = toISO(d), m = marks.get(k);
+      if (m) m.label += "/" + label; else marks.set(k, { cls, label });
+    };
+    mark(dep, "m-dep", "出發");
+    mark(hsr, "m-hsr", "高鐵");
+    mark(tra, "m-tra", "台鐵");
+    mark(early, "m-early", "早鳥止");
+
+    const first = new Date(Math.min(hsr, tra, t)); const months = [];
+    let cur = new Date(first.getFullYear(), first.getMonth(), 1);
+    const end = new Date(dep.getFullYear(), dep.getMonth(), 1);
+    while (cur <= end && months.length < 3) { months.push(cur); cur = new Date(cur.getFullYear(), cur.getMonth() + 1, 1); }
+    if (months.length > 2) months.shift();
+
+    $("#calendar").innerHTML = months.map(m => {
+      const startDow = m.getDay(), days = new Date(m.getFullYear(), m.getMonth() + 1, 0).getDate();
+      let cells = WEEK.map(w => `<div class="dow">${w}</div>`).join("");
+      for (let i = 0; i < startDow; i++) cells += `<div class="day out"></div>`;
+      for (let d = 1; d <= days; d++) {
+        const date = new Date(m.getFullYear(), m.getMonth(), d), k = toISO(date), mk = marks.get(k);
+        const cls = ["day", mk ? mk.cls : "", date < t ? "past" : "", k === toISO(t) ? "today" : ""].join(" ");
+        cells += `<div class="${cls}" ${mk ? `title="${mk.label}"` : ""}><span>${d}</span>${mk ? `<span class="mk">${mk.label}</span>` : ""}</div>`;
+      }
+      return `<div class="cal"><h3>${m.getFullYear()} 年 ${m.getMonth() + 1} 月</h3><div class="cal-grid">${cells}</div></div>`;
+    }).join("");
+
+    const cd = (title, d, extra) => {
+      const n = diffDays(d, t);
+      const when = n > 0 ? `還有 ${n} 天` : n === 0 ? "就是今天！" : extra === "open" ? "已開賣，可以訂了 ✓" : `已過 ${-n} 天`;
+      return `<div class="cd ${n === 0 || (extra === "open" && n <= 0 && diffDays(dep, t) >= 0) ? "now" : ""}"><div>${title}</div><div class="when">${fmtMD(d)} · ${when}</div></div>`;
+    };
+    $("#countdown").innerHTML = [
+      cd("🚄 高鐵開放訂票（00:00 起）", hsr, "open"),
+      cd("🚆 台鐵開放訂票", tra, "open"),
+      cd("🐦 早鳥優惠停售（預估）", early),
+      cd("🏠 出發回家", dep),
+    ].join("");
+
+    const tips = [];
+    const nOpen = diffDays(hsr, t), dLeft = f.daysLeft;
+    if (dLeft < 0) tips.push("這個日期已經過去了，換一天看看吧！");
+    else if (nOpen > 0) tips.push(`高鐵還沒開賣：<strong>${fmtMD(hsr)} 凌晨 00:00</strong> 開放，大學生 5 折和早鳥 65 折名額很少，建議設鬧鐘一開賣就搶。`);
+    else if (dLeft >= S.rules.earlyCut) tips.push("<strong>現在就可以訂高鐵！</strong>早鳥與大學生優惠都在販售期，越早訂越容易拿到低折扣。");
+    else tips.push("離出發不到幾天，早鳥大概已停售，可以找找還有沒有大學生 75 折、88 折的車次，或改搭台鐵/客運。");
+    if ([0, 5].includes(dep.getDay())) tips.push("週五、週日是大學生返鄉/返校尖峰，優惠車次搶得快，台鐵自強號也容易客滿。");
+    if (dep.getDay() === 0) tips.push("小技巧：週日的高鐵票，在 4 週前的<strong>週五</strong>就能先訂（比平常早 2 天）。");
+    if (dep.getDay() === 6) tips.push("小技巧：週六的高鐵票，在 4 週前的<strong>週五</strong>就能先訂（比平常早 1 天）。");
+    tips.push("一般來說，避開週五傍晚、週日下午這些尖峰時段，比較容易買到 5 折或早鳥車次（每月適用車次以高鐵官網公告為準）。");
+    if (f.student) tips.push(`台鐵大學生優惠（至 2027/8/16）：普悠瑪、自強依班次固定 5 折或 7 折，名額有限，${fmtMD(tra)} 開賣後盡早訂；區間車、自由座不適用。`);
+    $("#tips").innerHTML = tips.map(x => `<li>${x}</li>`).join("");
+  }
+
+  /* ================= 設定面板 ================= */
+  const getP = (o, p) => p.split(".").reduce((a, k) => (a == null ? a : a[k]), o);
+  const setP = (o, p, v) => { const ks = p.split("."), last = ks.pop(); ks.reduce((a, k) => a[k], o)[last] = v; };
+
+  function renderSettings() {
+    const pair = (label, base) => getP(S, base) ? `<div class="set-row"><span>${label}</span>
+        <input type="number" min="0" step="1" data-path="${base}.cost" aria-label="${label} 價錢" value="${getP(S, base + ".cost")}">
+        <input type="number" min="0" step="1" data-path="${base}.min" aria-label="${label} 分鐘" value="${getP(S, base + ".min")}"></div>` : "";
+    const one = (label, path) => `<div class="set-row one"><span>${label}</span><input type="number" min="0" step="1" data-path="${path}" aria-label="${label}" value="${getP(S, path)}"></div>`;
+    const head = `<div class="set-row head"><span></span><span>價錢 $</span><span>分鐘</span></div>`;
+    const leg1Rows = sid => ["taxi", "bus"].map(m => pair(`${MODE[m].icon} ${MODE[m].name}`, `leg1.${sid}.${m}`)).join("");
+    $("#setGrid").innerHTML = `
+      <div class="set-group"><h3>中正 ↔ 民雄站</h3>${head}${leg1Rows("minxiong")}</div>
+      <div class="set-group"><h3>中正 ↔ 大林站</h3>${head}${leg1Rows("dalin")}</div>
+      <div class="set-group"><h3>中正 ↔ 高鐵嘉義站</h3>${head}${leg1Rows("chiayi")}</div>
+      <div class="set-group"><h3>中正 ↔ 高鐵雲林站</h3>${head}${leg1Rows("yunlin")}</div>
+      <div class="set-group"><h3>台鐵 ↔ 板橋</h3>${head}
+        ${Object.keys(TRA_TYPES).map(t => pair(`民雄 ${TRA_TYPES[t].name}`, `tra.minxiong.${t}`)).join("")}
+        ${Object.keys(TRA_TYPES).map(t => pair(`大林 ${TRA_TYPES[t].name}`, `tra.dalin.${t}`)).join("")}
+        <div class="hint">目前普悠瑪、自強 3000 與一般自強號同價（全票），請填入你查到的實際票價。</div></div>
+      <div class="set-group"><h3>高鐵 ↔ 板橋（全票）</h3>${head}
+        ${pair("嘉義 → 板橋", "hsr.chiayi")}${pair("雲林 → 板橋", "hsr.yunlin")}
+        ${one("提早到高鐵站（分）", "buffer.hsr")}${one("提早到火車站（分）", "buffer.tra")}${one("板橋站 ↔ 家（分）", "buffer.home")}</div>
+      <div class="set-group"><h3>統聯客運 7005</h3>
+        ${one("走到校內站牌（分）", "coach.walk")}${one("中正 ↔ 台北轉運站 $", "coach.cost")}${one("客運車程（分）", "coach.min")}
+        ${one("捷運 台北 ↔ 板橋 $", "coach.mrtCost")}${one("捷運時間（分）", "coach.mrtMin")}</div>
+      <div class="set-group"><h3>訂票規則</h3>
+        ${one("高鐵：乘車前幾天開賣", "rules.hsrOpen")}${one("台鐵：乘車前幾天開賣", "rules.traOpen")}${one("早鳥：乘車前幾天停售", "rules.earlyCut")}
+        <div class="hint">高鐵目前為「乘車日（含）前 29 天」開放，也就是前 28 天。</div></div>`;
+  }
+
+  $("#setGrid").addEventListener("change", e => {
+    const p = e.target.dataset.path; if (!p) return;
+    const v = Math.max(0, Number(e.target.value) || 0);
+    e.target.value = v; setP(S, p, v); saveSettings(); update();
+  });
+  $("#resetBtn").addEventListener("click", () => {
+    S = structuredClone(DEFAULTS); store.del("ccu.settings"); renderSettings(); update();
+  });
+
+  /* ================= TDX 即時班表 ================= */
+  const TDX = {
+    auth: "https://tdx.transportdata.tw/auth/realms/TDXConnect/protocol/openid-connect/token",
+    base: "https://tdx.transportdata.tw/api/basic",
+    key: () => store.get("ccu.tdx", null),
+    async token() {
+      const k = this.key();
+      if (!k || !k.id || !k.secret) throw new Error("未設定金鑰");
+      const c = store.get("ccu.tdx.token", null);
+      if (c && c.id === k.id && c.exp > Date.now() + 60000) return c.t;
+      const r = await fetch(this.auth, {
+        method: "POST", headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        body: new URLSearchParams({ grant_type: "client_credentials", client_id: k.id, client_secret: k.secret }),
+      });
+      if (!r.ok) throw new Error(`金鑰驗證失敗（${r.status}）`);
+      const j = await r.json();
+      store.set("ccu.tdx.token", { id: k.id, t: j.access_token, exp: Date.now() + j.expires_in * 1000 });
+      return j.access_token;
+    },
+    async get(path) {
+      const t = await this.token();
+      const r = await fetch(this.base + path, { headers: { Authorization: "Bearer " + t } });
+      if (r.status === 429) throw new Error("查詢太頻繁，請稍後再試");
+      if (!r.ok) throw new Error(`查詢失敗（${r.status}）`);
+      return r.json();
+    },
+    async stationIds() {
+      const cached = store.get("ccu.tdx.ids", null);
+      if (cached && cached.v === 1) return cached;
+      const [thsr, tra] = await Promise.all([
+        this.get("/v2/Rail/THSR/Station?%24format=JSON"),
+        this.get("/v3/Rail/TRA/Station?%24format=JSON"),
+      ]);
+      const list = j => Array.isArray(j) ? j : (j.Stations || []);
+      const find = (arr, name) => {
+        const s = list(arr).find(x => x.StationName && (x.StationName.Zh_tw === name || x.StationName.Zh_tw === name + "站"));
+        if (!s) throw new Error(`找不到車站：${name}`);
+        return s.StationID;
+      };
+      const ids = {
+        v: 1,
+        hsr: { chiayi: find(thsr, "嘉義"), yunlin: find(thsr, "雲林"), banqiao: find(thsr, "板橋") },
+        tra: { minxiong: find(tra, "民雄"), dalin: find(tra, "大林"), banqiao: find(tra, "板橋") },
+      };
+      store.set("ccu.tdx.ids", ids);
+      return ids;
+    },
+    // 統聯 7005（公路客運）：從班表找出經過「中正大學」與「台北」站牌的班次
+    async coachTrips(date, toSchool) {
+      const j = await this.get("/v2/Bus/Schedule/InterCity/7005?%24format=JSON");
+      const dayKey = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"][date.getDay()];
+      const name = s => (s.StopName && s.StopName.Zh_tw) || "";
+      const trips = [];
+      for (const sr of Array.isArray(j) ? j : []) for (const tt of sr.Timetables || []) {
+        if (tt.ServiceDay && tt.ServiceDay[dayKey] === 0) continue;
+        const st = [...(tt.StopTimes || [])].sort((a, b) => a.StopSequence - b.StopSequence);
+        const iC = st.findIndex(s => /中正大學/.test(name(s)));
+        const taipei = st.map((s, i) => /臺北|台北/.test(name(s)) ? i : -1).filter(i => i >= 0);
+        const iT = taipei.find(i => /轉運/.test(name(st[i]))) ?? taipei[0];
+        if (iC < 0 || iT == null) continue;
+        const [o, d] = toSchool ? [iT, iC] : [iC, iT];
+        if (o >= d) continue;
+        trips.push({ no: "7005", type: "統聯", dep: st[o].DepartureTime || st[o].ArrivalTime, arr: st[d].ArrivalTime || st[d].DepartureTime });
+      }
+      if (!trips.length) throw new Error("統聯 7005 查無符合的班次");
+      return trips;
+    },
+    async timetables(iso, dir) {
+      const ids = await this.stationIds();
+      const toSchool = dir === "school";
+      const od = (pair, sid) => toSchool ? [pair.banqiao, pair[sid]] : [pair[sid], pair.banqiao];
+      const out = {}, errors = [];
+      const jobs = [
+        ...["chiayi", "yunlin"].map(sid => { const [o, d] = od(ids.hsr, sid);
+          return this.get(`/v2/Rail/THSR/DailyTimetable/OD/${o}/to/${d}/${iso}?%24format=JSON`)
+          .then(j => { out[sid] = (Array.isArray(j) ? j : []).map(x => ({
+            no: x.DailyTrainInfo && x.DailyTrainInfo.TrainNo, type: "高鐵",
+            dep: x.OriginStopTime && x.OriginStopTime.DepartureTime, arr: x.DestinationStopTime && x.DestinationStopTime.ArrivalTime,
+          })); }); }),
+        ...["minxiong", "dalin"].map(sid => { const [o, d] = od(ids.tra, sid);
+          return this.get(`/v3/Rail/TRA/DailyTrainTimetable/OD/${o}/to/${d}/${iso}?%24format=JSON`)
+          .then(j => { out[sid] = (j.TrainTimetables || []).map(tt => {
+            const st = tt.StopTimes || [];
+            const so = st.find(s => s.StationID === o), sd = st.find(s => s.StationID === d);
+            return { no: tt.TrainInfo && tt.TrainInfo.TrainNo, type: (tt.TrainInfo && tt.TrainInfo.TrainTypeName && tt.TrainInfo.TrainTypeName.Zh_tw) || "台鐵",
+              dep: so && (so.DepartureTime || so.ArrivalTime), arr: sd && (sd.ArrivalTime || sd.DepartureTime) };
+          }); }); }),
+        // 客運查不到時不算錯誤：返校方向會改用內建時刻表，回家方向用預估值
+        this.coachTrips(fromISO(iso), toSchool).then(t => { out.campus = t; }, () => {}),
+      ].map(p => p.catch(e => errors.push(e.message)));
+      await Promise.all(jobs);
+      for (const k of Object.keys(out)) {
+        out[k] = out[k].filter(x => x.dep && x.arr).map(x => {
+          const dep = hm2min(x.dep); let arr = hm2min(x.arr); if (arr < dep) arr += 1440;
+          return { ...x, dep, arr };
+        }).sort((a, b) => a.dep - b.dep);
+      }
+      if (!Object.keys(out).length) throw new Error(errors[0] || "查無資料");
+      return { data: out, errors };
+    },
+  };
+
+  // 統聯 7005 支B（台北 → 民雄）官方時刻表，更新日期 114/4/11：台北轉運站發車，西螺轉乘 7005，到中正約西螺發車後 40 分
+  const COACH_7005_SOUTH = [["08:15", "12:40"], ["12:15", "16:10"], ["16:15", "20:10"]]
+    .map(([d, a]) => ({ no: "7005", type: "統聯", dep: hm2min(d), arr: hm2min(a), fixed: true }));
+
+  function applyLive(r, depMin, f) {
+    const liveOk = state.live && state.liveKey === `${f.iso}|${f.dir}`;
+    let list = liveOk ? state.live[r.station] : null;
+    if (!list && r.kind === "coach" && f.dir === "school") list = COACH_7005_SOUTH;
+    if (!list) return null;
+    const ready = depMin + r.pre + r.buffer;
+    const ok = r.kind === "tra" ? x => TRA_TYPES[r.sub].match(x.type) : () => true;
+    const train = list.find(x => x.dep >= ready && ok(x));
+    if (!train) return { none: true };
+    return { ...train, wait: train.dep - (depMin + r.pre) };
+  }
+
+  const liveStatus = (text, cls) => { const s = $("#liveStatus"); s.textContent = text; s.className = "live-status " + (cls || ""); };
+  let liveReq = 0;
+  async function loadLive(iso, dir, force = false) {
+    if (!TDX.key()) { state.live = null; liveStatus("即時班表：未設定（使用預估時間）"); return; }
+    const key = `${iso}|${dir}`;
+    if (!force && state.liveKey === key && state.live) return;
+    const my = ++liveReq;
+    liveStatus("即時班表：查詢中…");
+    try {
+      const { data, errors } = await TDX.timetables(iso, dir);
+      if (my !== liveReq) return;
+      state.live = data; state.liveKey = key;
+      liveStatus(errors.length ? `即時班表：部分成功（${errors[0]}）` : "即時班表：已連線 ✓", errors.length ? "err" : "ok");
+      update();
+    } catch (e) {
+      if (my !== liveReq) return;
+      state.live = null; state.liveKey = null;
+      const msg = e instanceof TypeError ? "瀏覽器無法連線（可能被 CORS 擋下）" : e.message;
+      update();
+      liveStatus("即時班表：失敗 — " + msg, "err");
+      throw e;
+    }
+  }
+
+  (function initTdx() {
+    const k = TDX.key();
+    if (k) { $("#tdxId").value = k.id; $("#tdxSecret").value = k.secret; }
+    $("#tdxSave").addEventListener("click", async () => {
+      const id = $("#tdxId").value.trim(), secret = $("#tdxSecret").value.trim(), msg = $("#tdxMsg");
+      if (!id || !secret) { msg.textContent = "請填入 Client Id 與 Client Secret。"; return; }
+      store.set("ccu.tdx", { id, secret }); store.del("ccu.tdx.token"); store.del("ccu.tdx.ids");
+      state.live = null; state.liveKey = null;
+      msg.textContent = "測試中…";
+      try { const f = readForm(); await loadLive(f.iso, f.dir); msg.textContent = "✓ 連線成功！方案比較已改用實際班次。"; }
+      catch (e) { msg.textContent = "✗ " + (e instanceof TypeError ? "瀏覽器無法直接連到 TDX（可能被 CORS 擋下）" : e.message); }
+    });
+    $("#tdxClear").addEventListener("click", () => {
+      ["ccu.tdx", "ccu.tdx.token", "ccu.tdx.ids"].forEach(store.del);
+      $("#tdxId").value = ""; $("#tdxSecret").value = "";
+      state.live = null; state.liveKey = null; $("#tdxMsg").textContent = "已清除金鑰。"; update();
+    });
+  })();
+
+  /* ================= 像素背景 ================= */
+  const THEMES = {
+    day: { body: "#8fd3f7", sky: ["#4aa3e6", "#5aafeb", "#6cbbf0", "#80c7f3", "#95d2f6", "#abdcf8", "#c3e7fa"],
+      cloud: "#ffffff", shade: "#d3e6f6", far: "#8db2db", farTop: "#a9c7e6", mid: "#6aab64", midTop: "#86c472", near: "#55b052", nearTop: "#8fd36b",
+      tree: "#3f8a45", flowers: ["#ffd84d", "#ff9ec0", "#ffffff"] },
+    dusk: { body: "#f2a07b", sky: ["#3d4b9a", "#5f53a3", "#8f5ea6", "#c66e9c", "#ec8a86", "#f6a979", "#fbcb85"],
+      cloud: "#ffd9c4", shade: "#e99ba9", far: "#7b609f", farTop: "#9278b0", mid: "#4f7656", midTop: "#68905b", near: "#456c47", nearTop: "#7a9f58",
+      tree: "#33553a", flowers: ["#ffd84d", "#ff9ec0"] },
+    night: { body: "#16224a", sky: ["#0b1330", "#0f1a3c", "#142147", "#1a2a55", "#203463", "#283f72", "#304a80"],
+      cloud: "#46568a", shade: "#35436f", far: "#22325c", farTop: "#2c3e6c", mid: "#1d3b3a", midTop: "#27504a", near: "#183630", nearTop: "#2a5a42",
+      tree: "#13302b", flowers: ["#a8bcff", "#ffe9a8"], stars: true },
+  };
+  const bg = $("#bg"), bctx = bg.getContext("2d");
+  const PX = 4;
+  let BW = 0, BH = 0, theme = "day", layers = null, clouds = [];
+  const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  function seeded(seed) { return () => (seed = (seed * 16807) % 2147483647) / 2147483647; }
+
+  function makeCloud(w, h, T, rnd) {
+    const c = document.createElement("canvas"); c.width = w; c.height = h;
+    const x = c.getContext("2d");
+    const n = 3 + Math.floor(rnd() * 3), blobs = [];
+    for (let i = 0; i < n; i++) {
+      blobs.push({ cx: w * (0.18 + 0.64 * (i / (n - 1))), cy: h * (0.62 - rnd() * 0.22), r: h * (0.24 + rnd() * 0.2) });
+    }
+    blobs.push({ cx: w / 2, cy: h * 0.42, r: h * 0.4 });
+    const inside = (px, py) => py < h * 0.86 && blobs.some(b => (px - b.cx) ** 2 + (py - b.cy) ** 2 <= b.r * b.r);
+    for (let py = 0; py < h; py++) for (let px = 0; px < w; px++) {
+      if (!inside(px + 0.5, py + 0.5)) continue;
+      x.fillStyle = (!inside(px + 0.5, py + 3.5) || py > h * 0.7) ? T.shade : T.cloud;
+      x.fillRect(px, py, 1, 1);
+    }
+    return c;
+  }
+
+  function buildLayers() {
+    const T = THEMES[theme], rnd = seeded(20260206);
+    document.body.style.background = T.body;
+    // 天空
+    const sky = document.createElement("canvas"); sky.width = BW; sky.height = BH;
+    const s = sky.getContext("2d");
+    const band = Math.ceil(BH * 0.72 / T.sky.length);
+    T.sky.forEach((c, i) => { s.fillStyle = c; s.fillRect(0, i * band, BW, band + 1); });
+    s.fillStyle = T.sky[T.sky.length - 1]; s.fillRect(0, band * T.sky.length, BW, BH);
+    if (T.stars) {
+      for (let i = 0; i < BW * BH / 260; i++) { s.fillStyle = rnd() > 0.85 ? "#ffe9a8" : "#ffffff"; s.fillRect(Math.floor(rnd() * BW), Math.floor(rnd() * BH * 0.6), 1, 1); }
+      const mx = Math.floor(BW * 0.8), my = Math.floor(BH * 0.14), r = 6;
+      for (let y = -r; y <= r; y++) for (let x = -r; x <= r; x++) if (x * x + y * y <= r * r && (x - 3) ** 2 + (y + 2) ** 2 > r * r * 0.7) { s.fillStyle = "#fff4c2"; s.fillRect(mx + x, my + y, 1, 1); }
+    } else if (theme === "dusk") {
+      const sx = Math.floor(BW * 0.72), sy = Math.floor(BH * 0.56), r = 10;
+      for (let y = -r; y <= r; y++) for (let x = -r; x <= r; x++) if (x * x + y * y <= r * r) { s.fillStyle = y > 3 ? "#ffb36b" : "#ffe08a"; s.fillRect(sx + x, sy + y, 1, 1); }
+    }
+    // 山與丘陵
+    const land = document.createElement("canvas"); land.width = BW; land.height = BH;
+    const l = land.getContext("2d");
+    const ridge = (base, amp, f1, f2, ph, col, top) => {
+      for (let x = 0; x < BW; x++) {
+        const y = Math.floor(base + Math.sin(x * f1 + ph) * amp + Math.sin(x * f2 + ph * 2) * amp * 0.45);
+        l.fillStyle = col; l.fillRect(x, y, 1, BH - y);
+        l.fillStyle = top; l.fillRect(x, y, 1, 2);
+      }
+    };
+    ridge(BH * 0.62, BH * 0.07, 0.021, 0.057, 1.3, T.far, T.farTop);
+    ridge(BH * 0.74, BH * 0.035, 0.016, 0.041, 2.1, T.mid, T.midTop);
+    for (let i = 0; i < BW / 18; i++) { // 小樹
+      const x = Math.floor(rnd() * BW), y = Math.floor(BH * 0.74 + Math.sin(x * 0.016 + 2.1) * BH * 0.035 + Math.sin(x * 0.041 + 4.2) * BH * 0.016);
+      l.fillStyle = T.tree;
+      l.fillRect(x - 1, y - 6, 3, 2); l.fillRect(x - 2, y - 4, 5, 3); l.fillRect(x, y - 1, 1, 2);
+    }
+    ridge(BH * 0.86, BH * 0.03, 0.012, 0.033, 0.4, T.near, T.nearTop);
+    for (let i = 0; i < BW * BH / 900; i++) {
+      const x = Math.floor(rnd() * BW), y = Math.floor(BH * 0.88 + rnd() * BH * 0.12);
+      l.fillStyle = T.flowers[Math.floor(rnd() * T.flowers.length)]; l.fillRect(x, y, 1, 1);
+    }
+    // 雲
+    clouds = [];
+    const n = Math.max(4, Math.round(BW / 70));
+    for (let i = 0; i < n; i++) {
+      const w = Math.floor(28 + rnd() * 46), h = Math.floor(w * (0.42 + rnd() * 0.15));
+      clouds.push({ img: makeCloud(w, h, T, rnd), x: rnd() * (BW + w) - w, y: Math.floor(rnd() * BH * 0.42), v: 0.6 + rnd() * 1.4 });
+    }
+    layers = { sky, land };
+  }
+
+  function resizeBg() {
+    const w = Math.ceil(innerWidth / PX), h = Math.ceil(innerHeight / PX);
+    if (w < 1 || h < 1 || (w === BW && h === BH && layers)) return;
+    BW = w; BH = h; bg.width = BW; bg.height = BH; buildLayers(); drawBg();
+  }
+  function drawBg() {
+    if (!layers) return;
+    bctx.drawImage(layers.sky, 0, 0);
+    for (const c of clouds) bctx.drawImage(c.img, Math.floor(c.x), c.y);
+    bctx.drawImage(layers.land, 0, 0);
+  }
+  let lastBg = 0;
+  function bgLoop(ts) {
+    const dt = (ts - lastBg) / 1000;
+    if (dt > 1 / 12) {
+      lastBg = ts;
+      for (const c of clouds) { c.x += c.v * Math.min(dt, 0.5); if (c.x > BW) c.x = -c.img.width; }
+      drawBg();
+    }
+    requestAnimationFrame(bgLoop);
+  }
+  function setThemeByTime(time) {
+    const h = Number(time.split(":")[0]);
+    const t = h < 5 || h >= 19 ? "night" : h >= 16 ? "dusk" : "day";
+    if (t !== theme) { theme = t; if (BW) { buildLayers(); drawBg(); } }
+  }
+
+  /* ================= 路線動畫（像素小人） ================= */
+  const rc = $("#routeCanvas"), rctx = rc.getContext("2d");
+  const LH = 60;
+  let RS = 3, LW = 200;
+  const anim = { route: null, dir: "home", t0: 0, segs: [], running: false, done: false };
+  const GROUND = 46, WHEEL = 55;
+
+  // 地標的 x 座標（邏輯像素）
+  const xA = () => Math.max(28, Math.round(LW * 0.11));
+  const xH = () => LW - Math.max(14, Math.round(LW * 0.08));
+  const xS = r => r && r.kind === "coach" ? xA() + Math.max(42, Math.round(LW * 0.14)) : Math.round(LW * 0.47);
+  const xT = () => xH() - Math.round(LW * 0.16); // 台北轉運站
+
+  const rect = (x, y, w, h, c) => { rctx.fillStyle = c; rctx.fillRect(Math.round(x), Math.round(y), w, h); };
+
+  // 中正大學圖書館：紅磚、三角山牆、粉紅入口雨遮、門前校名石、兩側枯樹
+  function drawCCU(cx, b) {
+    const brick = "#b5543c", light = "#c86c50", dark = "#8e3f2d", glass = "#55697a", trim = "#c0392b";
+    const tree = x => {
+      rect(x, b - 11, 1, 11, "#6b4a33");
+      rect(x - 3, b - 14, 1, 5, "#6b4a33"); rect(x - 2, b - 10, 2, 1, "#6b4a33");
+      rect(x + 3, b - 15, 1, 6, "#6b4a33"); rect(x + 1, b - 11, 2, 1, "#6b4a33");
+      rect(x - 1, b - 16, 1, 5, "#6b4a33");
+      [[-4, -15], [-2, -17], [3, -16], [4, -13], [0, -17], [-3, -12], [2, -14]].forEach(([dx, dy], i) =>
+        rect(x + dx, b + dy, 1, 1, i % 2 ? "#d9cf6e" : "#a9c46a"));
+    };
+    rect(cx - 21, b - 15, 42, 15, brick);                 // 兩翼
+    rect(cx - 16, b - 19, 32, 19, brick);                 // 中段
+    rect(cx - 9, b - 27, 18, 27, brick);                  // 中央主體
+    for (let i = 0; i < 8; i++) rect(cx - 9 + i, b - 28 - i, 18 - i * 2, 1, brick);   // 山牆
+    for (let i = 0; i < 8; i++) { rect(cx - 9 + i, b - 28 - i, 1, 1, trim); rect(cx + 8 - i, b - 28 - i, 1, 1, trim); }
+    for (let i = 0; i < 5; i++) rect(cx - 5 + i, b - 29 - i, 10 - i * 2, 1, dark); // 山牆內深色三角
+    rect(cx - 5, b - 28, 10, 1, "#dcc6a6");               // 米色橫帶
+    for (let y = b - 23; y < b - 2; y += 4) rect(cx - 21, y, 42, 1, light);
+    // 窗戶
+    rect(cx - 2, b - 26, 4, 4, glass); rect(cx - 7, b - 25, 3, 2, glass); rect(cx + 4, b - 25, 3, 2, glass);
+    for (let i = 0; i < 4; i++) rect(cx - 7 + i * 4, b - 20, 2, 2, glass);
+    rect(cx - 19, b - 12, 2, 2, glass); rect(cx + 17, b - 12, 2, 2, glass);
+    rect(cx - 14, b - 16, 2, 2, glass); rect(cx + 12, b - 16, 2, 2, glass);
+    // 入口
+    rect(cx - 7, b - 9, 14, 9, "#3a2a2a");
+    rect(cx - 8, b - 9, 1, 9, dark); rect(cx + 7, b - 9, 1, 9, dark);
+    rect(cx - 3, b - 5, 6, 5, trim);
+    for (let i = 0; i < 4; i++) rect(cx - 5 + i, b - 11 - i, 10 - i * 2, 1, "#e9a3a0");
+    rect(cx - 5, b - 11, 10, 2, "#d98c8a");
+    rect(cx - 4, b - 13, 8, 1, "#f2c7a0");                // 招牌
+    // 門前校名石
+    rect(cx - 6, b - 2, 12, 3, "#b9a493"); rect(cx - 6, b - 2, 12, 1, "#cdbba9");
+    for (let i = 0; i < 5; i++) rect(cx - 4 + i * 2, b - 1, 1, 1, "#6a5546");
+    tree(cx - 24); tree(cx + 24);
+  }
+
+  function drawStation(x, kind) {
+    rect(x - 8, GROUND - 11, 16, 11, "#f2f2f2"); rect(x - 10, GROUND - 13, 20, 3, kind === "hsr" ? "#ff8a3d" : "#3b82c4");
+    rect(x - 3, GROUND - 7, 6, 7, "#5a5f6b"); rect(x - 6, GROUND - 9, 3, 2, "#9fd0f0"); rect(x + 3, GROUND - 9, 3, 2, "#9fd0f0");
+  }
+  function drawBusStop(x) { rect(x, GROUND - 11, 1, 11, "#555"); rect(x - 3, GROUND - 14, 7, 4, "#3b82c4"); rect(x - 2, GROUND - 13, 5, 2, "#fff"); }
+  function drawHouse(x) {
+    rect(x - 8, GROUND - 9, 16, 9, "#fff3d6");
+    for (let i = 0; i < 6; i++) rect(x - 10 + i, GROUND - 10 - i, 20 - i * 2, 1, "#e5484d");
+    rect(x - 2, GROUND - 6, 4, 6, "#8a5a3c"); rect(x + 4, GROUND - 7, 3, 3, "#9fd0f0"); rect(x - 7, GROUND - 7, 3, 3, "#9fd0f0");
+  }
+
+  function drawScene(r) {
+    const T = THEMES[theme];
+    rctx.fillStyle = T.sky[4]; rctx.fillRect(0, 0, LW, LH);
+    rctx.fillStyle = T.sky[6]; rctx.fillRect(0, 22, LW, 24);
+    for (let x = 0; x < LW; x++) { const y = Math.floor(38 + Math.sin(x * 0.07) * 3 + Math.sin(x * 0.19) * 1.5); rect(x, y, 1, 10, T.far); }
+    rect(0, GROUND, LW, LH - GROUND, T.near); rect(0, GROUND, LW, 1, T.nearTop);
+    rect(0, 49, LW, 7, "#8a8f9c"); rect(0, 49, LW, 1, "#6d7280");
+    for (let x = 0; x < LW; x += 8) rect(x, 52, 4, 1, "#f4f4f4");
+    drawCCU(xA(), GROUND);
+    if (r && r.kind === "coach") { drawBusStop(xS(r)); drawBusStop(xT()); }
+    else drawStation(xS(r), r && r.kind);
+    drawHouse(xH());
+  }
+
+  function drawPerson(x, y, frame) { // 腳底在 y
+    rect(x - 2, y - 11, 4, 2, "#3b2a20");
+    rect(x - 2, y - 9, 4, 3, "#f5c9a0"); rect(x - 1, y - 8, 1, 1, "#222"); rect(x + 1, y - 8, 1, 1, "#222");
+    rect(x - 2, y - 6, 4, 3, "#ff7b9c");
+    if (frame % 2) { rect(x - 2, y - 3, 1, 3, "#3a4f8a"); rect(x + 1, y - 3, 1, 2, "#3a4f8a"); }
+    else { rect(x - 1, y - 3, 1, 3, "#3a4f8a"); rect(x, y - 3, 1, 3, "#3a4f8a"); }
+  }
+
+  function drawVehicle(mode, x, y, frame, flip) { // x = 車頭位置, y = 車輪底；flip 時車頭朝左
+    x = Math.round(x);
+    if (flip) { rctx.save(); rctx.translate(2 * x, 0); rctx.scale(-1, 1); }
+    const wob = frame % 2;
+    if (mode === "taxi" || mode === "share") {
+      const c = "#ffc93c", d = "#d99a12", L = x - 15;
+      rect(L + 4, y - 9 - wob, 7, 3, c); rect(L + 5, y - 8 - wob, 2, 2, "#bfe3ff"); rect(L + 8, y - 8 - wob, 2, 2, "#bfe3ff");
+      rect(L, y - 6 - wob, 15, 3, c); rect(L + 14, y - 6 - wob, 1, 1, "#fff6a0"); rect(L, y - 3 - wob, 15, 1, d);
+      rect(L + 6, y - 10 - wob, 3, 1, "#ffffff");
+      if (mode === "share") { rect(L + 5, y - 8 - wob, 1, 1, "#3b2a20"); rect(L + 6, y - 8 - wob, 1, 1, "#7a4a2a"); rect(L + 8, y - 8 - wob, 1, 1, "#3b2a20"); rect(L + 9, y - 8 - wob, 1, 1, "#7a4a2a"); }
+      rect(L + 2, y - 2, 3, 2, "#222"); rect(L + 10, y - 2, 3, 2, "#222");
+    } else if (mode === "bus" || mode === "coach") {
+      const c = mode === "bus" ? "#5cb85c" : "#3b82c4", L = x - 24;
+      rect(L, y - 11 - wob, 24, 8, c);
+      for (let i = 0; i < 5; i++) rect(L + 2 + i * 4, y - 9 - wob, 3, 3, "#d6efff");
+      rect(L + 22, y - 9 - wob, 2, 4, "#d6efff"); rect(L, y - 4 - wob, 24, 1, "#26324f");
+      rect(L + 3, y - 2, 3, 2, "#222"); rect(L + 17, y - 2, 3, 2, "#222");
+    } else if (mode === "tra" || mode === "mrt") {
+      const body = mode === "tra" ? "#f4f4f4" : "#e8eef8", stripe = mode === "tra" ? "#e5484d" : "#3b82c4";
+      for (let car = 0; car < 2; car++) {
+        const L = x - 44 + car * 22;
+        rect(L, y - 11, 21, 9, body); rect(L, y - 5, 21, 1, stripe);
+        for (let i = 0; i < 4; i++) rect(L + 2 + i * 5, y - 9, 3, 2, "#3a4f6a");
+        rect(L + 3, y - 2, 3, 2, "#333"); rect(L + 15, y - 2, 3, 2, "#333");
+      }
+      rect(x - 2, y - 9, 2, 3, "#3a4f6a");
+    } else if (mode === "hsr") {
+      const L = x - 50;
+      rect(L, y - 10, 42, 8, "#f8f8f8");
+      for (let i = 0; i < 8; i++) rect(x - 8 + i, y - 10 + Math.floor(i * 0.9), 1, 8 - Math.floor(i * 0.9), "#f8f8f8");
+      rect(L, y - 5, 48, 1, "#ff8a3d"); rect(L, y - 4, 48, 1, "#26324f");
+      for (let i = 0; i < 7; i++) rect(L + 3 + i * 5, y - 8, 3, 2, "#3a4f6a");
+      rect(x - 7, y - 9, 3, 2, "#3a4f6a");
+      rect(L + 4, y - 2, 3, 2, "#333"); rect(L + 32, y - 2, 3, 2, "#333");
+    } else { drawPerson(x, y, frame); }
+    if (flip) rctx.restore();
+  }
+
+  function legSegments(r, dir) {
+    const P = r.legs.length === 2 ? [xA(), xS(r), xH()] : [xA(), xS(r), xT(), xH()];
+    const dur = m => Math.min(3.2, Math.max(0.9, (m / 60) * 1.1)) * 1000;
+    const n = r.legs.length, segs = [];
+    if (dir === "home") for (let i = 0; i < n; i++) segs.push({ leg: r.legs[i], from: P[i], to: P[i + 1], ms: dur(r.legs[i].min) });
+    else for (let i = n - 1; i >= 0; i--) segs.push({ leg: r.legs[i], from: P[i + 1], to: P[i], ms: dur(r.legs[i].min) });
+    return segs;
+  }
+
+  function placeLabels(r) {
+    const pct = x => (x / LW * 100) + "%";
+    $("#lmA").style.left = pct(xA()); $("#lmC").style.left = pct(xH());
+    $("#lmB").style.left = pct(xS(r));
+    $("#lmB").textContent = r && r.kind === "coach" ? "🚏 統聯" : r ? `🚉 ${STATIONS[r.station].name}` : "🚉 車站";
+  }
+  const arriveText = r => `${anim.dir === "home" ? "🏠 到家啦！" : "🏫 抵達中正！"}共 ${money(r.cost)}、${fmtDur(r.min)}`;
+  const idleText = () => "點選下方方案，看小人怎麼" + (state.dir === "home" ? "回家" : "回學校") + " ↓";
+
+  function resetAnim() {
+    anim.route = null; anim.done = false;
+    $("#bubble").textContent = idleText();
+    placeLabels(null);
+  }
+
+  function startAnim(r) {
+    anim.route = r; anim.dir = state.dir; anim.segs = legSegments(r, anim.dir); anim.t0 = performance.now(); anim.done = false;
+    placeLabels(r);
+    $("#bubble").textContent = `${MODE[anim.segs[0].leg.mode].icon} 出發！`;
+    if (reduceMotion) { anim.done = true; drawRoute(performance.now()); $("#bubble").textContent = arriveText(r); return; }
+    if (!anim.running) { anim.running = true; requestAnimationFrame(drawRoute); }
+  }
+
+  function drawRoute(ts) {
+    drawScene(anim.route);
+    const frame = Math.floor(ts / 160);
+    const flip = anim.dir === "school";
+    if (!anim.route) {
+      drawPerson(state.dir === "home" ? xA() + 30 : xH() - 14, WHEEL, Math.floor(ts / 600));
+      if (anim.running) requestAnimationFrame(drawRoute);
+      return;
+    }
+    let el = ts - anim.t0, drawn = false;
+    if (!anim.done) {
+      for (const sg of anim.segs) {
+        if (el <= sg.ms) {
+          const p = el / sg.ms, ease = p < 0.5 ? 2 * p * p : 1 - (-2 * p + 2) ** 2 / 2;
+          drawVehicle(sg.leg.mode, sg.from + (sg.to - sg.from) * ease, WHEEL, frame, flip);
+          $("#bubble").textContent = `${MODE[sg.leg.mode].icon} ${sg.leg.name}…`;
+          drawn = true; break;
+        }
+        el -= sg.ms;
+      }
+      if (!drawn) { anim.done = true; $("#bubble").textContent = arriveText(anim.route); }
+    }
+    if (anim.done) {
+      const px = flip ? xA() + 30 : xH() - 13;
+      drawPerson(px, WHEEL, 0);
+      const bob = Math.floor(ts / 300) % 2;
+      const heart = (x, y) => { rect(x, y, 1, 1, "#e5484d"); rect(x + 2, y, 1, 1, "#e5484d"); rect(x, y + 1, 3, 1, "#e5484d"); rect(x + 1, y + 2, 1, 1, "#e5484d"); };
+      heart(px - 6, 36 - bob); heart(px - 1, 33 + bob); heart(px + 4, 37 - bob);
+    }
+    if (anim.running && !(anim.done && reduceMotion)) requestAnimationFrame(drawRoute);
+  }
+
+  function resizeRoute() {
+    const w = rc.clientWidth || 600;
+    RS = w < 600 ? 2 : 3;
+    rc.style.height = (LH * RS) + "px";
+    LW = Math.max(150, Math.floor(w / RS));
+    rc.width = LW; rc.height = LH;
+    placeLabels(anim.route);
+    if (!anim.running) drawRoute(performance.now());
+  }
+
+  /* ================= 主流程 ================= */
+  // 即時班次只在按「查詢」時抓取；日期或方向改變後提示重新查詢
+  function update() {
+    const f = readForm();
+    saveForm(f);
+    el.tvOut.textContent = f.tv ? `$${f.tv}` : "只看錢";
+    renderFareOptions(f.fare, f.traFare);
+    const f2 = readForm(), D = DIR[f2.dir];
+    $("#subtitle").textContent = D.sub;
+    $("#depTimeLabel").textContent = D.timeLabel;
+    $$("#dirSeg button").forEach(x => x.setAttribute("aria-pressed", String(x.dataset.dir === f2.dir)));
+    // 共乘人數只在勾選「共乘計程車」時顯示
+    $("#shareField").hidden = !f2.modes.has("share");
+    const mx = S.leg1.minxiong.taxi.cost;
+    $("#shareHint").textContent = `計程車費會平均分攤，例如到民雄站 $${mx} ÷ ${f2.shareN} 人＝每人 $${Math.ceil(mx / f2.shareN)}。`;
+    el.fareHint.textContent = fareHint(f2, resolveHsrFare(f2));
+    setThemeByTime(f2.time);
+    const routes = buildRoutes(f2);
+    renderRoutes(f2, routes);
+    renderCalendar(f2);
+    if (anim.route) {
+      const r = routes.find(x => x.id === anim.route.id);
+      if (r) anim.route = r;
+    }
+    if (!TDX.key()) liveStatus("即時班表：未設定（使用預估時間）");
+    else if (!state.live) liveStatus("即時班表：按「🔍 查詢即時班次」取得實際班次");
+    else if (state.liveKey !== `${f2.iso}|${f2.dir}`) liveStatus("條件已變更：請重新按「🔍 查詢」", "err");
+  }
+
+  $("#queryBtn").addEventListener("click", async () => {
+    const btn = $("#queryBtn"), hint = $("#queryHint");
+    if (!TDX.key()) {
+      $("#settings").open = true;
+      $("#tdxId").focus();
+      hint.textContent = "還沒有設定 TDX 金鑰，請在下方「設定」貼上 Client Id 與 Client Secret。";
+      return;
+    }
+    const f = readForm();
+    btn.disabled = true; btn.textContent = "⏳ 查詢中…";
+    try {
+      await loadLive(f.iso, f.dir, true);
+      hint.textContent = `已更新 ${fmtMD(f.date)} ${DIR[f.dir].from}→${DIR[f.dir].to} 的實際班次（改出發時間不用重查）。`;
+      if (matchMedia("(max-width: 860px)").matches) $("#resTitle").scrollIntoView({ behavior: reduceMotion ? "auto" : "smooth" });
+    } catch (e) {
+      hint.textContent = "查詢失敗，暫時使用預估時間，可以稍後再試一次。";
+    } finally {
+      btn.disabled = false; btn.textContent = "🔍 查詢即時班次";
+    }
+  });
+
+  document.addEventListener("input", e => { if (e.target.closest(".grid") && ![el.fare, el.traFare, el.shareN].includes(e.target)) update(); });
+  [el.fare, el.traFare, el.shareN].forEach(s => s.addEventListener("change", () => update()));
+  $("#dirSeg").addEventListener("click", e => {
+    const b = e.target.closest("button"); if (!b || b.dataset.dir === state.dir) return;
+    state.dir = b.dataset.dir; state.selected = null;
+    resetAnim();
+    update();
+  });
+  $("#sortSeg").addEventListener("click", e => {
+    const b = e.target.closest("button"); if (!b) return;
+    state.sort = b.dataset.sort;
+    $$("#sortSeg button").forEach(x => x.setAttribute("aria-pressed", String(x === b)));
+    update();
+  });
+  $("#moreBtn").addEventListener("click", () => { state.showAll = !state.showAll; update(); });
+  const choose = id => {
+    const r = lastRoutes.find(x => x.id === id); if (!r) return;
+    state.selected = id;
+    $$(".route").forEach(x => x.classList.toggle("selected", x.dataset.id === id));
+    startAnim(r);
+    if (matchMedia("(max-width: 860px)").matches) $(".stage").scrollIntoView({ behavior: reduceMotion ? "auto" : "smooth", block: "start" });
+  };
+  $("#routes").addEventListener("click", e => { const card = e.target.closest(".route"); if (card) choose(card.dataset.id); });
+  $("#routes").addEventListener("keydown", e => {
+    if ((e.key === "Enter" || e.key === " ") && e.target.classList.contains("route")) { e.preventDefault(); choose(e.target.dataset.id); }
+  });
+
+  initForm();
+  $$("#sortSeg button").forEach(x => x.setAttribute("aria-pressed", String(x.dataset.sort === state.sort)));
+  renderSettings();
+  setThemeByTime(el.time.value);
+  resizeBg();
+  resizeRoute();
+  update();
+  addEventListener("resize", () => { resizeBg(); resizeRoute(); });
+  if (!reduceMotion) { requestAnimationFrame(bgLoop); anim.running = true; requestAnimationFrame(drawRoute); }
+})();
+</script>
+</body>
+</html>
