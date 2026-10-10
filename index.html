@@ -185,10 +185,11 @@
   .set-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px; margin-top: 14px; }
   .set-group { border: 2px solid var(--ink); background: #fff; padding: 10px 12px; }
   .set-group h3 { font-family: var(--pixel); font-weight: 400; font-size: 17px; margin: 0 0 8px; }
-  .set-row { display: grid; grid-template-columns: minmax(0, 1fr) 76px 76px; gap: 6px; align-items: center; font-size: 14px; margin-bottom: 6px; }
+  .set-row { display: grid; grid-template-columns: minmax(0, 1fr) 64px 56px; gap: 6px; align-items: center; font-size: 14px; margin-bottom: 6px; }
   .set-row.head { font-size: 12px; color: var(--ink-soft); }
   .set-row input { padding: 3px 5px; }
-  .set-row.one { grid-template-columns: minmax(0, 1fr) 76px; }
+  .set-row.one { grid-template-columns: minmax(0, 1fr) 64px; }
+  .set-row > span:first-child { word-break: keep-all; }
   .tdx-box { margin-top: 16px; border: 2px dashed var(--ink); padding: 12px; background: #fff; }
   .tdx-box .row2 { margin: 8px 0; }
 
@@ -420,9 +421,9 @@
       yunlin:   { taxi: { cost: 600, min: 35 }, bus: null },
     },
     tra: {
-      // 估計值（2025/6 台鐵漲價前），可在設定面板改成實際票價
-      minxiong: { puyuma: { cost: 562, min: 170 }, emu3000: { cost: 562, min: 180 }, ziqiang: { cost: 562, min: 185 }, local: { cost: 362, min: 300 } },
-      dalin:    { puyuma: { cost: 548, min: 165 }, emu3000: { cost: 548, min: 175 }, ziqiang: { cost: 548, min: 180 }, local: { cost: 352, min: 290 } },
+      // 實際查詢的全票票價（2025/6 漲價後）
+      minxiong: { puyuma: { cost: 710, min: 180 }, emu3000: { cost: 710, min: 181 }, ziqiang: { cost: 710, min: 181 }, local: { cost: 458, min: 320 } },
+      dalin:    { puyuma: { cost: 697, min: 214 }, emu3000: { cost: 697, min: 221 }, ziqiang: { cost: 697, min: 180 }, local: { cost: 449, min: 320 } },
     },
     hsr: { chiayi: { cost: 1040, min: 85 }, yunlin: { cost: 900, min: 80 } },
     coach: { walk: 10, cost: 330, min: 210, mrtCost: 25, mrtMin: 20 },
@@ -772,7 +773,7 @@
       <div class="set-group"><h3>台鐵 ↔ 板橋</h3>${head}
         ${Object.keys(TRA_TYPES).map(t => pair(`民雄 ${TRA_TYPES[t].name}`, `tra.minxiong.${t}`)).join("")}
         ${Object.keys(TRA_TYPES).map(t => pair(`大林 ${TRA_TYPES[t].name}`, `tra.dalin.${t}`)).join("")}
-        <div class="hint">目前普悠瑪、自強 3000 與一般自強號同價（全票），請填入你查到的實際票價。</div></div>
+        <div class="hint">目前普悠瑪、自強 3000 與一般自強號同價（全票）；票價已是 2025/6 漲價後的實際價格。</div></div>
       <div class="set-group"><h3>高鐵 ↔ 板橋（全票）</h3>${head}
         ${pair("嘉義 → 板橋", "hsr.chiayi")}${pair("雲林 → 板橋", "hsr.yunlin")}
         ${one("提早到高鐵站（分）", "buffer.hsr")}${one("提早到火車站（分）", "buffer.tra")}${one("板橋站 ↔ 家（分）", "buffer.home")}</div>
